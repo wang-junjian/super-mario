@@ -1,0 +1,15 @@
+{
+  "name": "super-mario",
+  "version": "1.0.0",
+  "description": "Super Mario game built with HTML5 Canvas",
+  "type": "module",
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' npx jest",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' npx jest --watch",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' npx jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

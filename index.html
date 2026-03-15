@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超级马力欧 - Super Mario</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 50%, #F0E68C 100%);
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            color: white;
+        }
+
+        #gameWrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #gameCanvas {
+            border: 4px solid #8B4513;
+            border-radius: 8px;
+            background: #87CEEB;
+            box-shadow: 0 0 50px rgba(255, 69, 0, 0.4),
+                        0 0 100px rgba(0, 0, 0, 0.6);
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 280px;
+            background: rgba(30, 30, 50, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #3a3a5a;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 14px;
+            background: #FF4500;
+            border-radius: 2px;
+        }
+
+        /* 状态栏 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF4500;
+        }
+
+        .stat-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        /* 生命值心形显示 */
+        .lives-container {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .mario-icon {
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+
+        .mario-icon.lost {
+            filter: grayscale(100%);
+            opacity: 0.3;
+        }
+
+        .mario-icon.pulse {
+            animation: marioPulse 0.3s ease-in-out;
+        }
+
+        @keyframes marioPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+
+        /* 关卡进度条 */
+        .level-progress {
+            margin-top: 8px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF4500, #FF8C00);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        /* 道具效果区 */
+        .powerups-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* 活跃道具区域 - 单列布局 */
+        #powerupsList {
+            grid-template-columns: 1fr;
+        }
+
+        .powerup-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .powerup-icon {
+            font-size: 24px;
+            width: 35px;
+            text-align: center;
+        }
+
+        .powerup-info {
+            flex: 1;
+        }
+
+        .powerup-name {
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+
+        .powerup-timer-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .powerup-timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 2px;
+            transition: width 0.1s linear;
+        }
+
+        .no-powerups {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            padding: 20px;
+        }
+
+        /* 控制按钮区 */
+        .controls-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 10px 15px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .control-btn.sound-on {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
+        }
+
+        .control-btn.sound-off {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: #f44336;
+        }
+
+        /* 历史最高分 */
+        .high-score {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(255, 69, 0, 0.2), rgba(255, 140, 0, 0.1));
+            border-radius: 8px;
+            border: 1px solid rgba(255, 69, 0, 0.3);
+        }
+
+        .high-score-label {
+            font-size: 12px;
+            color: #FF8C00;
+            margin-bottom: 4px;
+        }
+
+        .high-score-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FF4500;
+            text-shadow: 0 0 10px rgba(255, 69, 0, 0.5);
+        }
+
+        /* 游戏时间 */
+        .game-time {
+            text-align: center;
+            font-size: 24px;
+            font-family: 'Courier New', monospace;
+            color: #888;
+            letter-spacing: 2px;
+        }
+
+        /* 开始/结束/配置界面 */
+        #startScreen, #gameOverScreen, #configScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 8px;
+        }
+
+        #configScreen {
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .config-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .config-section h3 {
+            color: #FF4500;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .config-item label {
+            color: #ccc;
+            flex: 1;
+        }
+
+        .config-item input[type="range"] {
+            flex: 2;
+            margin: 0 10px;
+        }
+
+        .config-item input[type="number"] {
+            width: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #333;
+            color: white;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .config-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .config-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .config-buttons button {
+            padding: 10px 25px;
+            font-size: 16px;
+        }
+
+        #startScreen h1, #gameOverScreen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #FF4500;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #startScreen p, #gameOverScreen p {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #ccc;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 15px 40px;
+            font-size: 20px;
+            background: #FF4500;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #FF8C00;
+        }
+
+        .controls {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .controls h3 {
+            color: #FF4500;
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            #gameWrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-width: 800px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameWrapper">
+
+        <!-- 游戏画布区域 -->
+        <div id="gameContainer">
+            <canvas id="gameCanvas" width="1024" height="600"></canvas>
+
+            <div id="startScreen">
+                <h1>🍄 超级马力欧</h1>
+                <p style="margin-bottom: 20px;">穿越关卡，拯救碧琪公主！</p>
+
+                <div style="display: flex; gap: 40px; margin: 30px 0; flex-wrap: wrap; justify-content: center;">
+                    <!-- 操作说明 -->
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; min-width: 200px;">
+                        <h3 style="color: #FF4500; margin-bottom: 15px;">⌨️ 操作说明</h3>
+                        <div style="text-align: left; line-height: 1.8;">
+                            <p><strong>移动：</strong>A D / 方向键 ←→</p>
+                            <p><strong>下蹲：</strong>S / 方向键 ↓</p>
+                            <p><strong>跳跃：</strong>空格 / W / 方向键 ↑</p>
+                            <p><strong>冲刺：</strong>Shift 键</p>
+                            <p><strong>火球：</strong>J 键 (火焰花状态)</p>
+                            <p><strong>暂停：</strong>P 键</p>
+                            <p><strong>音效：</strong>M 键</p>
+                        </div>
+                    </div>
+
+                    <!-- 道具说明 -->
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; min-width: 200px;">
+                        <h3 style="color: #FF4500; margin-bottom: 15px;">🎁 道具效果</h3>
+                        <div style="text-align: left; line-height: 1.8;">
+                            <p><span style="font-size: 20px;">🍄</span> 超级蘑菇 - 马力欧变大</p>
+                            <p><span style="font-size: 20px;">🌼</span> 火焰花 - 可以发射火球</p>
+                            <p><span style="font-size: 20px;">⭐</span> 无敌星 - 短暂无敌状态</p>
+                            <p><span style="font-size: 20px;">🍀</span> 1UP蘑菇 - 增加一条生命</p>
+                        </div>
+                    </div>
+
+                    <!-- 得分规则 -->
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; min-width: 200px;">
+                        <h3 style="color: #FF4500; margin-bottom: 15px;">💯 得分规则</h3>
+                        <div style="text-align: left; line-height: 1.8;">
+                            <p>收集金币：200分</p>
+                            <p>踩踏敌人：100分</p>
+                            <p>吃道具：1000分</p>
+                            <p>通关奖励：5000分</p>
+                            <p>生命耗尽：游戏结束</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="startBtn">开始游戏</button>
+            </div>
+
+            <div id="gameOverScreen" class="hidden">
+                <h1 id="gameOverTitle">游戏结束</h1>
+                <p id="finalScore">最终分数: 0</p>
+                <p id="finalLevel">关卡: 1</p>
+                <button id="restartBtn">重新开始</button>
+            </div>
+    </div>
+
+    <script src="game-all-in-one.js"></script>
+</body>
+</html>

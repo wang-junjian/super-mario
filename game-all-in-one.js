@@ -10,7 +10,7 @@ if (typeof document !== 'undefined') {
 // ==============================
 // 常量配置
 // ==============================
-const TILE_SIZE = 32;
+const TILE_SIZE = 48;
 const CANVAS_WIDTH = 1024;
 const CANVAS_HEIGHT = 600;
 
@@ -72,7 +72,7 @@ const GAME_CONFIG = {
         enemyKillValue: 100,
         powerupValue: 1000,
         levelCompleteBonus: 5000,
-        levelWidth: 2000
+        levelWidth: 3000
     }
 };
 
@@ -628,8 +628,8 @@ function generateLevel(level) {
             enemies.push({
                 x: x * TILE_SIZE,
                 y: (groundHeight - 1) * TILE_SIZE,
-                width: 16,
-                height: 16,
+                width: 24,
+                height: 24,
                 type: level < 3 ? ENEMY_TYPES.GOOMBA : (Math.random() < 0.7 ? ENEMY_TYPES.GOOMBA : ENEMY_TYPES.KOOPA),
                 velocityX: direction * params.maxEnemySpeed,
                 velocityY: 0,
@@ -837,6 +837,54 @@ function renderTiles(tiles, cameraX, canvasWidth) {
                 ctx.fillStyle = '#32CD32';
                 ctx.fillRect(tile.x + 2, tile.y + 2, tile.width - 4, tile.height - 4);
                 break;
+            case TILE_TYPES.COIN:
+                // 绘制关卡中的固定金币
+                const coinSize = TILE_SIZE * 0.4;
+                const x = tile.x + TILE_SIZE / 2;
+                const y = tile.y + TILE_SIZE / 2 + Math.sin(Date.now() / 200) * 2; // 上下浮动效果
+
+                // 阴影
+                ctx.fillStyle = 'rgba(218, 165, 32, 0.5)';
+                ctx.beginPath();
+                ctx.arc(x + 1, y + 1, coinSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 渐变金币主体
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, coinSize);
+                gradient.addColorStop(0, '#FFFF99');
+                gradient.addColorStop(0.3, '#FFD700');
+                gradient.addColorStop(0.7, '#FFA500');
+                gradient.addColorStop(1, '#DAA520');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, coinSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 边缘高光
+                ctx.strokeStyle = '#FFFFCC';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 内圈
+                ctx.fillStyle = '#DAA520';
+                ctx.beginPath();
+                ctx.arc(x, y, coinSize - 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // $符号
+                ctx.fillStyle = '#FFFFE0';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('$', x, y);
+
+                // 光泽
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.beginPath();
+                ctx.arc(x - 2, y - 2, 2, 0, Math.PI * 2);
+                ctx.fill();
+                break;
         }
 
         // 绘制旗杆
@@ -882,34 +930,70 @@ function renderMario(mario, gameSpecialState) {
         mario.direction = 1;
     }
 
+    // 圆角矩形辅助函数
+    function roundRect(x, y, w, h, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        ctx.lineTo(x + radius, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fill();
+    }
+
     // 身体
     ctx.fillStyle = shirtColor;
-    ctx.fillRect(mario.x, mario.y + yOffset + height * 0.3, mario.width, height * 0.4);
+    roundRect(mario.x, mario.y + yOffset + height * 0.3, mario.width, height * 0.4, 3);
 
-    // 头部
+    // 头部（圆形更可爱）
     ctx.fillStyle = '#FFDBAC'; // 肤色
-    ctx.fillRect(mario.x + mario.width * 0.2, mario.y + yOffset, mario.width * 0.6, height * 0.3);
+    ctx.beginPath();
+    ctx.arc(mario.x + mario.width/2, mario.y + yOffset + height * 0.15, mario.width * 0.35, 0, Math.PI * 2);
+    ctx.fill();
 
     // 帽子
     ctx.fillStyle = hatColor;
-    ctx.fillRect(mario.x, mario.y + yOffset, mario.width, height * 0.15);
+    roundRect(mario.x, mario.y + yOffset, mario.width, height * 0.15, 2);
+    // 帽子上的M标志
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('M', mario.x + mario.width/2, mario.y + yOffset + height * 0.12);
 
     // 裤子
     ctx.fillStyle = pantsColor;
-    ctx.fillRect(mario.x, mario.y + yOffset + height * 0.7, mario.width, height * 0.3);
+    roundRect(mario.x, mario.y + yOffset + height * 0.7, mario.width, height * 0.3, 3);
 
-    // 鞋子
+    // 鞋子（更圆润）
     ctx.fillStyle = '#8B4513';
-    ctx.fillRect(mario.x, mario.y + yOffset + height * 0.9, mario.width, height * 0.1);
+    roundRect(mario.x - 1, mario.y + yOffset + height * 0.9, mario.width + 2, height * 0.1, 2);
 
-    // 眼睛方向
+    // 眼睛（更生动）
     ctx.fillStyle = 'white';
     const eyeX = mario.direction > 0 ? mario.x + mario.width * 0.6 : mario.x + mario.width * 0.2;
-    ctx.fillRect(eyeX, mario.y + yOffset + height * 0.1, 3, 3);
-
-    // 胡子
+    ctx.beginPath();
+    ctx.arc(eyeX + 1.5, mario.y + yOffset + height * 0.1 + 1.5, 2, 0, Math.PI * 2);
+    ctx.fill();
+    // 瞳孔
     ctx.fillStyle = 'black';
-    ctx.fillRect(mario.x + mario.width * 0.3, mario.y + yOffset + height * 0.22, mario.width * 0.4, 2);
+    ctx.beginPath();
+    ctx.arc(eyeX + 1.5 + (mario.direction > 0 ? 1 : -1), mario.y + yOffset + height * 0.1 + 1.5, 1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 微笑表情
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(mario.x + mario.width/2, mario.y + yOffset + height * 0.2, 3, 0, Math.PI);
+    ctx.fill();
+
+    // 胡子（更自然）
+    ctx.fillStyle = 'black';
+    roundRect(mario.x + mario.width * 0.3, mario.y + yOffset + height * 0.22, mario.width * 0.4, 2, 1);
 }
 
 // 渲染敌人
@@ -927,27 +1011,92 @@ function renderEnemies(enemies, cameraX, canvasWidth) {
             continue;
         }
 
+        // 圆角矩形辅助函数
+        function roundRect(x, y, w, h, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + w - radius, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+            ctx.lineTo(x + w, y + h - radius);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+            ctx.lineTo(x + radius, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.fill();
+        }
+
         switch(enemy.type) {
             case ENEMY_TYPES.GOOMBA:
-                // 蘑菇怪
-                ctx.fillStyle = '#8B4513';
-                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                // 可爱的蘑菇怪
+                ctx.fillStyle = '#A0522D'; // 更暖的棕色
+                roundRect(enemy.x, enemy.y, enemy.width, enemy.height, 4);
+
+                // 眼睛（呆萌可爱）
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(enemy.x + 6, enemy.y + 7, 3, 0, Math.PI * 2);
+                ctx.arc(enemy.x + enemy.width - 6, enemy.y + 7, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 瞳孔
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(enemy.x + 6, enemy.y + 7, 1.5, 0, Math.PI * 2);
+                ctx.arc(enemy.x + enemy.width - 6, enemy.y + 7, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 微笑
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2, enemy.y + 12, 2, 0, Math.PI);
+                ctx.fill();
+
+                // 蘑菇斑点
+                ctx.fillStyle = '#D2691E';
+                ctx.beginPath();
+                ctx.arc(enemy.x + 4, enemy.y + 4, 2, 0, Math.PI * 2);
+                ctx.arc(enemy.x + enemy.width - 4, enemy.y + 4, 2, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+
+            case ENEMY_TYPES.KOOPA:
+                // 可爱的小乌龟
+                ctx.fillStyle = '#90EE90'; // 浅绿色身体
+                roundRect(enemy.x, enemy.y + enemy.height * 0.3, enemy.width, enemy.height * 0.7, 3);
+
+                // 头
+                ctx.fillStyle = '#90EE90';
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2, enemy.y + enemy.height * 0.25, enemy.width * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 龟壳
+                ctx.fillStyle = '#228B22';
+                roundRect(enemy.x + 2, enemy.y + 2, enemy.width - 4, enemy.height * 0.6, 3);
+                ctx.fillStyle = '#32CD32';
+                roundRect(enemy.x + 4, enemy.y + 4, enemy.width - 8, enemy.height * 0.5, 2);
+
                 // 眼睛
                 ctx.fillStyle = 'white';
-                ctx.fillRect(enemy.x + 3, enemy.y + 4, 3, 3);
-                ctx.fillRect(enemy.x + enemy.width - 6, enemy.y + 4, 3, 3);
-                // 眉毛
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2 - 3, enemy.y + enemy.height * 0.25, 2, 0, Math.PI * 2);
+                ctx.arc(enemy.x + enemy.width/2 + 3, enemy.y + enemy.height * 0.25, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 瞳孔
                 ctx.fillStyle = 'black';
-                ctx.fillRect(enemy.x + 3, enemy.y + 2, 3, 1);
-                ctx.fillRect(enemy.x + enemy.width - 6, enemy.y + 2, 3, 1);
-                break;
-            case ENEMY_TYPES.KOOPA:
-                // 乌龟
-                ctx.fillStyle = '#008000';
-                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-                // 龟壳
-                ctx.fillStyle = '#006400';
-                ctx.fillRect(enemy.x + 2, enemy.y + 2, enemy.width - 4, enemy.height - 4);
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2 - 3, enemy.y + enemy.height * 0.25, 1, 0, Math.PI * 2);
+                ctx.arc(enemy.x + enemy.width/2 + 3, enemy.y + enemy.height * 0.25, 1, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 微笑
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2, enemy.y + enemy.height * 0.3, 1.5, 0, Math.PI);
+                ctx.fill();
                 break;
         }
     }
@@ -1041,10 +1190,52 @@ function renderParticles(particles, cameraX, canvasWidth) {
 
         switch(particle.type) {
             case 'coin':
-                ctx.fillStyle = '#FFD700';
-                ctx.font = '12px Arial';
+                // 绘制3D效果金币
+                const coinSize = 10;
+                const x = particle.x;
+                const y = particle.y;
+
+                // 阴影效果
+                ctx.fillStyle = 'rgba(218, 165, 32, 0.5)';
+                ctx.beginPath();
+                ctx.arc(x + 1, y + 1, coinSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 金币主体（金黄色渐变）
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, coinSize);
+                gradient.addColorStop(0, '#FFFF99'); // 高光
+                gradient.addColorStop(0.3, '#FFD700'); // 金色
+                gradient.addColorStop(0.7, '#FFA500'); // 暗金色
+                gradient.addColorStop(1, '#DAA520'); // 边缘
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, coinSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 金币边缘高光
+                ctx.strokeStyle = '#FFFFCC';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 金币内圈
+                ctx.fillStyle = '#DAA520';
+                ctx.beginPath();
+                ctx.arc(x, y, coinSize - 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 中心$符号
+                ctx.fillStyle = '#FFFFE0';
+                ctx.font = 'bold 10px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('🪙', particle.x, particle.y);
+                ctx.textBaseline = 'middle';
+                ctx.fillText('$', x, y);
+
+                // 光泽效果
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.beginPath();
+                ctx.arc(x - 2, y - 2, 2, 0, Math.PI * 2);
+                ctx.fill();
                 break;
             case 'debris':
                 ctx.fillStyle = '#CD853F';
@@ -1139,8 +1330,8 @@ let gameState = {
 let mario = {
     x: 100,
     y: 200,
-    width: 16,
-    height: 16,
+    width: 24,
+    height: 24,
     velocityX: 0,
     velocityY: 0,
     isOnGround: false,
@@ -1276,9 +1467,9 @@ function resetMario() {
 // 更新马里奥尺寸
 function updateMarioSize() {
     if (mario.state === MARIO_STATES.SMALL) {
-        mario.height = 16;
+        mario.height = 24;
     } else {
-        mario.height = 32;
+        mario.height = 48;
     }
 }
 
@@ -1305,8 +1496,8 @@ function handleFire() {
     fireballs.push({
         x: mario.x + (mario.direction > 0 ? mario.width : 0),
         y: mario.y + mario.height / 2,
-        width: 8,
-        height: 8,
+        width: 12,
+        height: 12,
         velocityX: mario.direction * 6,
         velocityY: 0,
         bounces: 0,
@@ -1493,8 +1684,8 @@ function hitBlock(block) {
             powerups.push({
                 x: block.x,
                 y: block.y - TILE_SIZE,
-                width: 16,
-                height: 16,
+                width: 24,
+                height: 24,
                 type: block.contains === 'mushroom' ? POWERUP_TYPES.MUSHROOM :
                       block.contains === 'flower' ? POWERUP_TYPES.FIRE_FLOWER : POWERUP_TYPES.ONE_UP,
                 velocityY: -2,
